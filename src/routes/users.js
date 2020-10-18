@@ -1,7 +1,7 @@
 var express = require("express");
+
 var router = express.Router();
 const User = require("../models/Users");
-
 router.get("/", async (req, res) => {
   try {
     const users = await User.find({});
@@ -20,6 +20,7 @@ router.get("/:id", async (req, res) => {
     if (!user) {
       return res.status(404).send();
     }
+
     res.send(user);
   } catch (e) {
     res.status(500).send(e);
@@ -30,10 +31,27 @@ router.post("/", async (req, res, next) => {
   try {
     const { name, age, email, password } = req.body;
     const newUser = new User({ name, age, password, email });
-    await newUser.save();
-    res.status(201).send(newUser);
+    let token = await newUser.generateAuthToken();
+
+    res.status(201).send({ newUser, token });
   } catch (e) {
     res.status(500).send(e);
+  }
+});
+
+router.post("/login", async (req, res) => {
+  try {
+    const user = await User.findByCredientials(
+      req.body.email,
+      req.body.password
+    );
+    const token = await user.generateAuthToken();
+    res.send({
+      user,
+      token
+    });
+  } catch (e) {
+    res.status(400).send(e.message);
   }
 });
 
@@ -51,16 +69,16 @@ router.patch("/:id", async (req, res) => {
   }
 
   try {
-    let updatedUser = await User.findByIdAndUpdate(req.params.id, req.body, {
-      new: true,
-      runValidators: true
+    const user = await User.findById(req.params.id);
+    updates.forEach(property => {
+      user[property] = req.body[property];
     });
-
-    if(!updatedUser){
-      res.status(404).send('no user found')
+    await user.save();
+    if (!user) {
+      res.status(404).send("no user found");
     }
 
-    res.send(updatedUser);
+    res.send(user);
   } catch (e) {
     res.status(500).send();
   }

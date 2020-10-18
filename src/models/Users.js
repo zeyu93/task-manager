@@ -1,7 +1,9 @@
 const validator = require("validator");
 const mongoose = require("mongoose");
+const bcrypt = require("bcryptjs");
+const jwt = require("jsonwebtoken");
 
-const User = mongoose.model("User", {
+const userSchema = new mongoose.Schema({
   name: {
     type: String,
     required: true,
@@ -26,7 +28,8 @@ const User = mongoose.model("User", {
       if (!validator.isEmail(value)) {
         throw new Error("not valid email format");
       }
-    }
+    },
+    unique: true
   },
   password: {
     type: String,
@@ -38,7 +41,57 @@ const User = mongoose.model("User", {
         throw new Error('password cannot contain " passowrd " ');
       }
     }
-  }
+  },
+  tokens: [
+    {
+      token: {
+        type: String,
+        required: true
+      }
+    }
+  ]
 });
+//methods are instance methods
+
+userSchema.methods.generateAuthToken = async function() {
+  const user = this;
+  const token = jwt.sign(
+    {
+      id: user.id
+    },
+    process.env.JWT_TOKEN_SECRET
+  );
+
+  user.tokens = [...user.tokens, { token }];
+  await user.save();
+
+  return token;
+};
+
+//statics are model methods
+userSchema.statics.findByCredientials = async (email, password) => {
+  let user = await User.findOne({ email });
+  if (!user) {
+    throw new Error("cannot login");
+  }
+
+  let isMatch = bcrypt.compareSync(password, user.password);
+
+  if (!isMatch) {
+    throw new Error("wrong login");
+  }
+
+  return user;
+};
+
+userSchema.pre("save", async function(next) {
+  // this reference the user instance
+  if (this.isModified("password")) {
+    this.password = bcrypt.hashSync(this.password, 8);
+  }
+
+  next();
+});
+const User = mongoose.model("User", userSchema);
 
 module.exports = User;
