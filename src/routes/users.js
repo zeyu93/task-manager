@@ -1,17 +1,10 @@
 var express = require("express");
-
 var router = express.Router();
 const User = require("../models/Users");
-router.get("/", async (req, res) => {
-  try {
-    const users = await User.find({});
-    if (!users) {
-      return res.status(404).send();
-    }
-    res.send(users);
-  } catch (e) {
-    res.status(500).send(e);
-  }
+const handleAuth = require("../middleware/auth");
+
+router.get("/me", handleAuth, async (req, res) => {
+  res.send(req.user);
 });
 
 router.get("/:id", async (req, res) => {
@@ -55,7 +48,29 @@ router.post("/login", async (req, res) => {
   }
 });
 
-router.patch("/:id", async (req, res) => {
+router.post("/logout", handleAuth, async (req, res) => {
+  try {
+    req.user.tokens = req.user.tokens.filter(
+      token => token.token !== req.token
+    );
+    await req.user.save();
+    res.status(200).send();
+  } catch (e) {
+    res.status(500).send();
+  }
+});
+
+router.post("/logout/all", handleAuth, async (req, res) => {
+  try {
+    req.user.tokens = [];
+    await req.user.save();
+    res.status(200).send(req.user);
+  } catch (e) {
+    res.status(500).send();
+  }
+});
+
+router.patch("/me", handleAuth, async (req, res) => {
   let allowedUpdatesArr = ["name", "email", "password", "age"];
   let allowedUpdates = new Set(allowedUpdatesArr);
   let updates = Object.keys(req.body);
@@ -69,16 +84,21 @@ router.patch("/:id", async (req, res) => {
   }
 
   try {
-    const user = await User.findById(req.params.id);
+    const user = req.user;
     updates.forEach(property => {
       user[property] = req.body[property];
     });
     await user.save();
-    if (!user) {
-      res.status(404).send("no user found");
-    }
-
     res.send(user);
+  } catch (e) {
+    res.status(500).send();
+  }
+});
+
+router.delete("/me", handleAuth, async (req, res) => {
+  try {
+    await req.user.remove();
+    res.send(req.user);
   } catch (e) {
     res.status(500).send();
   }
