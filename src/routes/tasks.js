@@ -14,7 +14,6 @@ router.get("/", handleAuth, async (req, res) => {
     const [field, order] = sortBy.split("_");
     sort[field] = order === "des" ? -1 : 1;
   }
-  console.log(sort)
 
   skip = parseInt(size) * parseInt(page - 1);
 
