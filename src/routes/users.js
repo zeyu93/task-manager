@@ -1,7 +1,25 @@
 var express = require("express");
 var router = express.Router();
+const sharp = require("sharp");
+const multer = require("multer");
+
 const User = require("../models/Users");
 const handleAuth = require("../middleware/auth");
+
+const upload = multer({
+  limits: {
+    fileSize: 15000000
+  },
+  fileFilter(req, file, cb) {
+    const acceptableFileExtenstions = ["jpg", "png", "jpeg"];
+    const [fileName, extension] = file.originalname.split(".");
+    if (acceptableFileExtenstions.indexOf(extension) === -1) {
+      cb(new Error("must be in jpg, png or jpeg"));
+    } else {
+      cb(null, true);
+    }
+  }
+});
 
 router.get("/me", handleAuth, async (req, res) => {
   res.send(req.user);
@@ -20,12 +38,37 @@ router.get("/:id", async (req, res) => {
   }
 });
 
+router.post(
+  "/me/avatar",
+  handleAuth,
+  upload.single("avatar"),
+  async (req, res) => {
+    const buffer = await sharp(req.file.buffer)
+      .resize({
+        width: 250,
+        height: 250
+      })
+      .png()
+      .toBuffer();
+    req.user.avatar = buffer;
+    await req.user.save();
+    res.send();
+  },
+  (err, req, res, next) => {
+    res.status(400).send({ message: err.message });
+  }
+);
+
+router.delete("/me/avatar", handleAuth, async (req, res) => {
+  req.user.avatar = null;
+  await req.user.save();
+  res.send();
+});
+
 router.post("/", async (req, res, next) => {
   try {
-    const { name, age, email, password } = req.body;
-    const newUser = new User({ name, age, password, email });
+    const newUser = new User(req.body);
     let token = await newUser.generateAuthToken();
-
     res.status(201).send({ newUser, token });
   } catch (e) {
     res.status(500).send(e);
