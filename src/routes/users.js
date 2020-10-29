@@ -5,6 +5,7 @@ const multer = require("multer");
 
 const User = require("../models/Users");
 const handleAuth = require("../middleware/auth");
+const sendWelcome = require("../emails/index");
 
 const upload = multer({
   limits: {
@@ -66,8 +67,9 @@ router.delete("/me/avatar", handleAuth, async (req, res) => {
 });
 
 router.post("/", async (req, res, next) => {
+  const newUser = new User(req.body);
   try {
-    const newUser = new User(req.body);
+    // sendWelcome(newUser.email, newUser.name);
     let token = await newUser.generateAuthToken();
     res.status(201).send({ newUser, token });
   } catch (e) {
