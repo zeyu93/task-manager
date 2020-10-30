@@ -9,7 +9,7 @@ app.use(express.json());
 app.use("/tasks", handleTaskRoutes);
 app.use("/users", handleUserRoutes);
 app.get("/", (req, res) => {
-  res.send("Welcome to Task App, HEALTH CHECK");
+  res.status(200).send("Welcome to Task App, HEALTH CHECK");
 });
 
 module.exports = app;

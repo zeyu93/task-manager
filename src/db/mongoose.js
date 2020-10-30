@@ -1,7 +1,8 @@
+require("dotenv").config();
 const mongoose = require("mongoose");
 
 let dbURL =
-  process.env.NODNODE_ENV === "test"
+  process.env.NODE_ENV === "test"
     ? process.env.MONGODB_TEST_URL
     : process.env.MONGODB_URL;
 
