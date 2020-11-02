@@ -5,8 +5,7 @@ const handleAuth = async (req, res, next) => {
   try {
     const token = req.header("Authorization").replace("Bearer ", "");
     const decoded = jwt.verify(token, process.env.JWT_TOKEN_SECRET);
-    const user = await User.findById(decoded.id);
-
+    const user = await User.findById(decoded._id);
     if (!user) {
       throw new Error();
     }

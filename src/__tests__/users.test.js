@@ -1,29 +1,10 @@
 const request = require("supertest");
 const app = require("../server/app");
 const User = require("../models/Users");
-const mongoose = require("mongoose");
-const jwt = require("jsonwebtoken");
 
-const testUserId = new mongoose.Types.ObjectId();
+const { testUser, testUserId, seedDB } = require("../db/fixtures/db");
 
-const testUser = {
-  _id: testUserId,
-  name: "John Cena",
-  email: "john@cena.com",
-  password: "Qwjqyx93",
-  tokens: [
-    {
-      token: jwt.sign({ _id: testUserId }, process.env.JWT_TOKEN_SECRET)
-    }
-  ]
-};
-
-beforeEach(async () => {
-  await User.deleteMany();
-  await new User(testUser).save();
-});
-
-afterAll(() => {});
+beforeEach(seedDB);
 
 test("health check", async () => {
   await request(app)
@@ -80,5 +61,28 @@ test("should  able to retrieve user profile when authenticated", async () => {
   await request(app)
     .get("/users/me")
     .set("Authorization", `Bearer ${testUser.tokens[0].token}`)
-    .expect(401);
+    .expect(200);
+});
+
+test("should update valid user field", async () => {
+  await request(app)
+    .patch("/users/me")
+    .set("Authorization", `Bearer ${testUser.tokens[0].token}`)
+    .send({
+      age: 54
+    })
+    .expect(200);
+
+  const user = await User.findById(testUserId);
+  expect(user.age).toBe(54);
+});
+
+test("should not update invalid user field", async () => {
+  await request(app)
+    .patch("/users/me")
+    .set("Authorization", `Bearer ${testUser.tokens[0].token}`)
+    .send({
+      location: "Quebec"
+    })
+    .expect(400);
 });

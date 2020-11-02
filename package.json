@@ -6,11 +6,10 @@
   "scripts": {
     "start:dev": "nodemon src/server/index.js",
     "start": "node src/server/index.js",
-    "test": "NODE_ENV=test && jest --watch"
+    "test": "NODE_ENV=test && jest --watch --runInBand"
   },
   "jest": {
-    "testEnvironment": "node",
-    "preset": "@shelf/jest-mongodb"
+    "testEnvironment": "node"
   },
   "author": "",
   "license": "ISC",

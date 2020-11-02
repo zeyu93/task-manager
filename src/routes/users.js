@@ -125,7 +125,7 @@ router.patch("/me", handleAuth, async (req, res) => {
   });
 
   if (notValidUpdates) {
-    return res.status(404).send("Not valid user property");
+    return res.status(400).send("Not valid user property");
   }
 
   try {
